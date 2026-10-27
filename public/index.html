@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Grok X Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:#09090b; --panel:#111114; --panel2:#16161a; --line:#232329; --line2:#2e2e36;
+    --text:#ececf1; --muted:#8a8a96; --dim:#5d5d68;
+    --pos:#4ade80; --neu:#9ca3af; --neg:#f87171; --warn:#fbbf24; --tool:#7dd3fc; --code:#c4b5fd;
+  }
+  * { box-sizing:border-box; }
+  html, body { height:100%; }
+  body { margin:0; background:var(--bg); color:var(--text); font:14px/1.5 Inter,system-ui,sans-serif; display:flex; flex-direction:column; }
+  .mono { font-family:"JetBrains Mono",monospace; }
+  header { display:flex; align-items:center; gap:14px; padding:12px 22px; border-bottom:1px solid var(--line); }
+  .logo { width:26px; height:26px; border-radius:7px; background:var(--text); color:var(--bg); display:grid; place-items:center; font-weight:700; font-size:15px; }
+  header h1 { font-size:15px; font-weight:600; margin:0; }
+  .tags { display:flex; gap:6px; flex-wrap:wrap; }
+  .tag { font:500 11px "JetBrains Mono",monospace; color:var(--muted); border:1px solid var(--line); padding:2px 8px; border-radius:99px; }
+  main { flex:1; min-height:0; display:grid; grid-template-columns:minmax(0,1fr) 400px; }
+  #content { overflow-y:auto; padding:22px 26px 60px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px 18px; }
+  .card h3 { margin:0 0 12px; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); display:flex; justify-content:space-between; }
+  input, select, button { font:inherit; color:var(--text); background:var(--panel2); border:1px solid var(--line2); border-radius:9px; padding:9px 12px; outline:none; }
+  input:focus, select:focus { border-color:#4a4a55; }
+  button { cursor:pointer; } button:disabled { opacity:.5; cursor:default; }
+  .primary { background:var(--text); color:#000; border:0; font-weight:600; padding:9px 18px; }
+  #searchRow { display:flex; gap:8px; }
+  #topic { flex:1; font-size:15px; padding:11px 14px; }
+  .chiprow { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; align-items:center; }
+  .chiprow .lbl { color:var(--dim); font-size:12px; margin-right:2px; }
+  .pill { font-size:12px; padding:4px 10px; border-radius:99px; background:var(--panel); border:1px solid var(--line); color:var(--muted); cursor:pointer; }
+  .pill:hover { color:var(--text); border-color:var(--line2); }
+  /* pipeline */
+  #pipeline { display:flex; gap:0; margin:18px 0; border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+  .stage { flex:1; padding:10px 14px; border-right:1px solid var(--line); background:var(--panel); }
+  .stage:last-child { border-right:0; }
+  .stage .n { font-size:11px; color:var(--dim); font-family:"JetBrains Mono",monospace; }
+  .stage .t { font-weight:600; font-size:13px; display:flex; align-items:center; gap:7px; }
+  .stage .s { font-size:11px; color:var(--muted); font-family:"JetBrains Mono",monospace; min-height:16px; }
+  .dot { width:8px; height:8px; border-radius:50%; background:var(--line2); flex:none; }
+  .stage.running .dot { background:var(--warn); animation:pulse 1s infinite; }
+  .stage.done .dot { background:var(--pos); }
+  @keyframes pulse { 50% { opacity:.3; } }
+  /* kpis */
+  .grid4 { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+  .kpi .v { font-size:26px; font-weight:600; letter-spacing:-.02em; }
+  .kpi .l { font-size:12px; color:var(--muted); }
+  .kpi .sub { font-size:11px; color:var(--dim); font-family:"JetBrains Mono",monospace; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px; }
+  .stack { display:flex; height:30px; border-radius:7px; overflow:hidden; background:var(--panel2); }
+  .stack div { display:grid; place-items:center; font-size:12px; font-weight:600; color:#000; transition:width .6s; min-width:0; }
+  .legend { display:flex; gap:14px; margin-top:10px; font-size:12px; color:var(--muted); }
+  .legend i { display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:5px; }
+  .bar { display:grid; grid-template-columns:120px 1fr 28px; gap:10px; align-items:center; font-size:12px; margin-bottom:7px; }
+  .bar .track { height:9px; background:var(--panel2); border-radius:5px; overflow:hidden; display:flex; }
+  .bar .track div { height:100%; transition:width .6s; }
+  .bar .c { text-align:right; color:var(--muted); font-family:"JetBrains Mono",monospace; }
+  /* brief + ask */
+  #brief { line-height:1.65; min-height:40px; }
+  #brief p { margin:0 0 8px; } #brief ul { margin:4px 0 12px; padding-left:18px; } #brief li { margin-bottom:4px; }
+  a.ref { color:var(--tool); text-decoration:none; font-family:"JetBrains Mono",monospace; font-size:12px; }
+  a.ref:hover { text-decoration:underline; }
+  .cursor::after { content:"▍"; color:var(--muted); animation:pulse 1s infinite; }
+  #askRow { display:flex; gap:8px; } #askRow input { flex:1; }
+  .qa { margin-top:12px; padding-top:12px; border-top:1px solid var(--line); }
+  .qa .q { color:var(--muted); font-size:13px; margin-bottom:4px; }
+  .qa .a p { margin:0 0 6px; }
+  /* posts */
+  .post { padding:12px 0; border-bottom:1px solid var(--line); display:grid; grid-template-columns:30px 1fr; gap:10px; }
+  .post:last-child { border-bottom:0; }
+  .post.flash { background:#1b1b22; border-radius:8px; }
+  .post .num { color:var(--dim); font:12px "JetBrains Mono",monospace; padding-top:2px; }
+  .post .meta { display:flex; flex-wrap:wrap; gap:8px; align-items:center; font-size:12px; color:var(--muted); }
+  .post .meta b { color:var(--text); font-weight:600; }
+  .post .txt { margin:5px 0 3px; }
+  .post .sum { font-size:12px; color:var(--dim); }
+  .badge { font:500 11px "JetBrains Mono",monospace; padding:1px 7px; border-radius:5px; }
+  .b-positive { color:var(--pos); background:#0f2618; } .b-neutral { color:var(--neu); background:#1c1c22; } .b-negative { color:var(--neg); background:#2a1414; }
+  .b-high { color:var(--warn); background:#2a2010; } .b-theme { color:var(--muted); background:var(--panel2); }
+  .b-ok { color:var(--pos); } .b-unv { color:var(--dim); }
+  .filters { display:flex; gap:6px; }
+  .filters button { font-size:11px; padding:3px 9px; border-radius:99px; }
+  .filters button.on { background:var(--text); color:#000; border-color:var(--text); }
+  #empty { margin:60px auto; max-width:560px; text-align:center; color:var(--muted); }
+  #empty h2 { color:var(--text); font-size:22px; letter-spacing:-.02em; margin:0 0 8px; }
+  .steps { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-top:24px; text-align:left; }
+  .steps div { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px; font-size:12px; }
+  .steps b { display:block; color:var(--text); font-size:12px; margin-bottom:2px; }
+  #err { display:none; margin-top:14px; padding:10px 14px; border-radius:9px; background:#2a1414; color:var(--neg); }
+  /* trace */
+  #trace { border-left:1px solid var(--line); background:#0c0c0e; display:flex; flex-direction:column; min-height:0; }
+  #trace h2 { margin:0; padding:13px 16px; font-size:12px; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); border-bottom:1px solid var(--line); display:flex; justify-content:space-between; }
+  #tstats { display:grid; grid-template-columns:repeat(3,1fr); border-bottom:1px solid var(--line); }
+  #tstats div { padding:9px 14px; border-right:1px solid var(--line); border-bottom:1px solid var(--line); }
+  #tstats div:nth-child(3n) { border-right:0; }
+  #tstats b { display:block; font:500 14px "JetBrains Mono",monospace; }
+  #tstats span { font-size:11px; color:var(--muted); }
+  #log { flex:1; overflow-y:auto; padding:10px 12px; font:12px/1.55 "JetBrains Mono",monospace; }
+  .ev { border:1px solid var(--line); border-radius:8px; padding:7px 10px; margin-bottom:7px; background:var(--panel); }
+  .ev .h { display:flex; justify-content:space-between; gap:8px; }
+  .ev .k { font-weight:500; } .ev .m { color:var(--dim); white-space:nowrap; }
+  .ev pre { margin:5px 0 0; white-space:pre-wrap; word-break:break-word; color:#a9a9b4; max-height:170px; overflow:auto; }
+  .ev.tool .k { color:var(--tool); } .ev.code .k { color:var(--code); } .ev.model .k { color:var(--text); } .ev.err .k { color:var(--neg); }
+  .hidden { display:none !important; }
+  @media (max-width:700px) { .tags { display:none; } #searchRow { flex-wrap:wrap; } #topic { flex-basis:100%; } #pipeline { flex-wrap:wrap; } .stage { flex-basis:50%; } }
+  @media (max-width:1000px) { main { grid-template-columns:1fr; } #trace { max-height:45vh; border-left:0; border-top:1px solid var(--line); } .grid4 { grid-template-columns:1fr 1fr; } .grid2, .steps { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">𝕏</div>
+  <h1>Grok X Intelligence</h1>
+  <div class="tags"><span class="tag">x_search</span><span class="tag">web_search</span><span class="tag">code_interpreter</span><span class="tag">structured outputs</span><span class="tag">streaming</span></div>
+</header>
+<main>
+  <section id="content">
+    <form id="searchRow">
+      <input id="topic" placeholder="Brand, product or topic — e.g. Cursor IDE, Starlink, Notion AI" autocomplete="off" required />
+      <select id="days" title="Time window"><option value="1">24 hours</option><option value="3">3 days</option><option value="7" selected>7 days</option><option value="14">14 days</option></select>
+      <select id="maxPosts" title="Posts"><option>15</option><option selected>25</option><option>40</option></select>
+      <button class="primary" id="go">Analyze</button>
+    </form>
+    <div class="chiprow" id="examples"><span class="lbl">Try</span></div>
+    <div class="chiprow" id="recent"></div>
+    <div id="err"></div>
+
+    <div id="empty">
+      <h2>What is X saying right now?</h2>
+      <div>Grok searches live posts on X and the web, labels every post against a strict schema, counts the results in code, and writes a cited brief. Then ask follow-up questions and Grok runs Python on the data.</div>
+      <div class="steps">
+        <div><b>1 · Collect</b>x_search + web_search, date-filtered</div>
+        <div><b>2 · Verify</b>Keep posts Grok actually retrieved</div>
+        <div><b>3 · Classify</b>Strict JSON schema, retry on failure</div>
+        <div><b>4 · Measure</b>Exact counts in code, not the LLM</div>
+        <div><b>5 · Brief</b>Streamed, every claim cites a post</div>
+      </div>
+    </div>
+
+    <div id="report" class="hidden">
+      <div id="pipeline"></div>
+      <div class="grid4">
+        <div class="card kpi"><div class="l">Posts analysed</div><div class="v" id="kTotal">–</div><div class="sub" id="kVer"></div></div>
+        <div class="card kpi"><div class="l">Net sentiment</div><div class="v" id="kNet">–</div><div class="sub">positive − negative</div></div>
+        <div class="card kpi"><div class="l">High urgency</div><div class="v" id="kUrg">–</div><div class="sub">needs a response</div></div>
+        <div class="card kpi"><div class="l">Top complaint</div><div class="v" id="kTop" style="font-size:18px;padding:5px 0 4px">–</div><div class="sub">among negative posts</div></div>
+      </div>
+      <div class="grid2">
+        <div class="card"><h3>Sentiment</h3><div class="stack" id="stack"></div>
+          <div class="legend"><span><i style="background:var(--pos)"></i>Positive</span><span><i style="background:var(--neu)"></i>Neutral</span><span><i style="background:var(--neg)"></i>Negative</span></div>
+          <div id="loudest"></div></div>
+        <div class="card"><h3>Themes</h3><div id="themes"></div></div>
+      </div>
+      <div class="card" style="margin-top:12px"><h3><span>Brief</span><span id="ctxNote" class="mono" style="text-transform:none;letter-spacing:0"></span></h3><div id="brief"></div></div>
+      <div class="card" style="margin-top:12px">
+        <h3>Ask about this data</h3>
+        <form id="askRow"><input id="q" placeholder="e.g. What share of complaints are about pricing? Which post has the most reach?" autocomplete="off" /><button>Ask Grok</button></form>
+        <div class="chiprow" id="askEx"></div>
+        <div id="answers"></div>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <h3><span>Posts</span><span class="filters" id="filters"></span></h3>
+        <div id="posts"></div>
+      </div>
+    </div>
+  </section>
+
+  <aside id="trace">
+    <h2><span>Agent trace</span><span id="tTime" class="mono"></span></h2>
+    <div id="tstats">
+      <div><b id="tCost">$0.00</b><span>total cost</span></div>
+      <div><b id="tTok">0</b><span>tokens</span></div>
+      <div><b id="tCache">0</b><span>cached tokens</span></div>
+      <div><b id="tX">0</b><span>X posts fetched</span></div>
+      <div><b id="tSearch">0</b><span>searches</span></div>
+      <div><b id="tCode">0</b><span>code runs</span></div>
+    </div>
+    <div id="log"></div>
+  </aside>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
+const STAGES = [["collect","Collect","x_search + web_search"],["verify","Verify","citation check"],["classify","Classify","structured output"],["measure","Measure","exact counts"],["brief","Brief","streamed"]];
+const THEME_LABEL = { bug_or_outage:"Bugs / outages", pricing:"Pricing", feature_request:"Feature requests", praise:"Praise", comparison:"Comparisons", news:"News", support:"Support", other:"Other" };
+let run = null, totals = null, filter = "all", busy = false, timer = null;
+
+["Cursor IDE", "Starlink", "Notion AI", "Tesla FSD", "Duolingo"].forEach(t => {
+  const b = document.createElement("span"); b.className = "pill"; b.textContent = t;
+  b.onclick = () => { $("topic").value = t; analyze(); }; $("examples").append(b);
+});
+["What share of negative posts are about pricing?", "Which complaint has the most likes combined?", "Is anything new on X in the last few hours?"].forEach(t => {
+  const b = document.createElement("span"); b.className = "pill"; b.textContent = t; b.onclick = () => ask(t); $("askEx").append(b);
+});
+
+fetch("/api/config").then(r => r.json()).then(c => { if (!c.hasKey) showErr("XAI_API_KEY is not set. Restart with: XAI_API_KEY=xai-... node server.js"); });
+loadRecent();
+async function loadRecent() {
+  const runs = await fetch("/api/runs").then(r => r.json());
+  $("recent").innerHTML = runs.length ? `<span class="lbl">Saved runs</span>` : "";
+  runs.slice(0, 8).forEach(r => {
+    const b = document.createElement("span"); b.className = "pill";
+    b.textContent = `${r.topic} · ${r.total} posts · ${new Date(r.createdAt).toLocaleDateString()}`;
+    b.onclick = () => openRun(r.id); $("recent").append(b);
+  });
+}
+
+function showErr(m) { $("err").style.display = m ? "block" : "none"; $("err").textContent = m || ""; }
+
+function resetTrace() {
+  totals = { cost:0, tok:0, cache:0, x:0, search:0, code:0 }; $("log").innerHTML = ""; renderTotals();
+}
+function addUsage(u) {
+  if (!u) return;
+  totals.cost += u.cost; totals.tok += u.in + u.out; totals.cache += u.cached;
+  totals.x += u.tools?.x_posts_fetched || 0;
+  totals.search += (u.tools?.x_search_calls || 0) + (u.tools?.web_search_calls || 0);
+  totals.code += u.tools?.code_interpreter_calls || 0;
+  renderTotals();
+}
+function renderTotals() {
+  $("tCost").textContent = "$" + totals.cost.toFixed(4); $("tTok").textContent = totals.tok.toLocaleString();
+  $("tCache").textContent = totals.cache.toLocaleString(); $("tX").textContent = totals.x;
+  $("tSearch").textContent = totals.search; $("tCode").textContent = totals.code;
+}
+function log(kind, title, detail, meta = "") {
+  const d = document.createElement("div"); d.className = "ev " + kind;
+  d.innerHTML = `<div class="h"><span class="k">${esc(title)}</span><span class="m">${esc(meta)}</span></div>${detail ? `<pre>${esc(detail)}</pre>` : ""}`;
+  $("log").append(d); $("log").scrollTop = 1e9;
+}
+function onTrace(e) {
+  if (e.kind === "model") {
+    const u = e.usage;
+    log("model", "◆ " + e.title, (e.detail ? e.detail + "\n" : "") +
+      `in ${u.in.toLocaleString()} (cached ${u.cached.toLocaleString()}) · out ${u.out.toLocaleString()} (reasoning ${u.reasoning.toLocaleString()})` +
+      (Object.keys(u.tools || {}).length ? "\n" + Object.entries(u.tools).filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`).join(" · ") : ""),
+      `${(e.ms / 1000).toFixed(1)}s · $${u.cost.toFixed(4)}`);
+    addUsage(u);
+  } else log(e.kind, (e.kind === "tool" ? "⚙ " : "ƒ ") + e.title, e.detail);
+}
+
+function renderPipeline() {
+  $("pipeline").innerHTML = STAGES.map(([id, t, s], i) =>
+    `<div class="stage" id="st-${id}"><div class="n">0${i + 1}</div><div class="t"><span class="dot"></span>${t}</div><div class="s" data-sub="${s}">${s}</div></div>`).join("");
+}
+function setStage(id, status, note) {
+  const el = $("st-" + id); if (!el) return;
+  el.className = "stage " + status;
+  el.querySelector(".s").textContent = note || el.querySelector(".s").dataset.sub;
+}
+
+function sse(url, body, handlers) {
+  return fetch(url, { method:"POST", headers:{ "Content-Type":"application/json" }, body:JSON.stringify(body) }).then(async res => {
+    const reader = res.body.getReader(), dec = new TextDecoder(); let buf = "";
+    while (true) {
+      const { value, done } = await reader.read(); if (done) break;
+      buf += dec.decode(value, { stream:true });
+      const parts = buf.split("\n\n"); buf = parts.pop();
+      for (const p of parts) {
+        const ev = p.match(/^event: (.*)$/m)?.[1], data = p.match(/^data: (.*)$/m)?.[1];
+        if (ev && handlers[ev]) handlers[ev](JSON.parse(data));
+      }
+    }
+  });
+}
+
+$("searchRow").onsubmit = e => { e.preventDefault(); analyze(); };
+async function analyze() {
+  const topic = $("topic").value.trim(); if (!topic || busy) return;
+  busy = true; $("go").disabled = true; showErr("");
+  $("empty").classList.add("hidden"); $("report").classList.remove("hidden");
+  run = null; filter = "all"; renderPipeline(); renderStats(null); $("posts").innerHTML = ""; $("answers").innerHTML = ""; $("ctxNote").textContent = "";
+  $("brief").innerHTML = `<span class="cursor" style="color:var(--muted)">Waiting for data</span>`;
+  resetTrace(); log("model", "▶ analyze", `topic: ${topic}\nwindow: ${$("days").value} days · up to ${$("maxPosts").value} posts`);
+  const t0 = Date.now(); clearInterval(timer);
+  timer = setInterval(() => $("tTime").textContent = ((Date.now() - t0) / 1000).toFixed(0) + "s", 250);
+  let briefText = "";
+  await sse("/api/analyze", { topic, days: +$("days").value, maxPosts: +$("maxPosts").value }, {
+    stage: s => {
+      if (s.id === "collect" && s.status === "running") {
+        const start = Date.now(); setStage("collect", "running", "searching… 0s");
+        const iv = setInterval(() => $("st-collect")?.classList.contains("running") ? setStage("collect", "running", `searching… ${((Date.now() - start) / 1000).toFixed(0)}s`) : clearInterval(iv), 500);
+      } else setStage(s.id, s.status, s.ms ? `${(s.ms / 1000).toFixed(1)}s` : null);
+    },
+    trace: e => {
+      onTrace(e);
+      if (e.title.startsWith("verify")) setStage("verify", "done", "done");
+      if (e.title.startsWith("measure")) setStage("measure", "done", "done");
+    },
+    posts: d => { run = { posts: d.posts, stats: d.stats, context: d.context }; renderStats(d.stats); renderPosts(); $("brief").innerHTML = ""; if (d.context) $("ctxNote").textContent = "+ web context"; },
+    token: t => { briefText += t.text; $("brief").innerHTML = md(briefText); $("brief").classList.add("cursor"); },
+    done: r => { run = r; $("brief").classList.remove("cursor"); $("brief").innerHTML = md(r.brief); log("model", "✓ done", null, `${(r.ms / 1000).toFixed(1)}s · $${r.totals.cost.toFixed(4)}`); loadRecent(); },
+    error: e => { showErr(e.message); log("err", "error", e.message); $("brief").classList.remove("cursor"); },
+  }).catch(e => showErr(e.message));
+  clearInterval(timer); busy = false; $("go").disabled = false;
+}
+
+async function openRun(id) {
+  const r = await fetch("/api/runs/" + id).then(x => x.json());
+  run = r; filter = "all"; $("topic").value = r.topic; showErr("");
+  $("empty").classList.add("hidden"); $("report").classList.remove("hidden");
+  renderPipeline(); STAGES.forEach(([s]) => setStage(s, "done", "saved"));
+  renderStats(r.stats); renderPosts(); $("brief").innerHTML = md(r.brief); $("answers").innerHTML = "";
+  $("ctxNote").textContent = `saved ${new Date(r.createdAt).toLocaleString()}`;
+  resetTrace();
+  Object.assign(totals, { cost:r.totals.cost, tok:r.totals.in + r.totals.out, cache:r.totals.cached, x:r.totals.xPosts, search:r.totals.searches, code:r.totals.codeRuns });
+  renderTotals(); $("tTime").textContent = (r.ms / 1000).toFixed(0) + "s";
+  log("model", "↺ saved run reopened", `${r.topic} · ${r.stats.total} posts · original cost $${r.totals.cost.toFixed(4)}`);
+}
+
+function renderStats(s) {
+  if (!s) { ["kTotal","kNet","kUrg","kTop"].forEach(k => $(k).textContent = "–"); $("kVer").textContent = ""; $("stack").innerHTML = ""; $("themes").innerHTML = ""; return; }
+  $("kTotal").textContent = s.total;
+  $("kVer").textContent = s.verified ? `${s.verified} source-verified` : "";
+  $("kNet").textContent = (s.netSentiment > 0 ? "+" : "") + s.netSentiment;
+  $("kNet").style.color = s.netSentiment > 10 ? "var(--pos)" : s.netSentiment < -10 ? "var(--neg)" : "var(--text)";
+  $("kUrg").textContent = s.urgent; $("kUrg").style.color = s.urgent ? "var(--warn)" : "var(--text)";
+  $("kTop").textContent = s.topComplaint ? THEME_LABEL[s.topComplaint] : "None";
+  const t = s.total || 1;
+  $("stack").innerHTML = [["positive","var(--pos)"],["neutral","var(--neu)"],["negative","var(--neg)"]]
+    .map(([k, c]) => `<div style="width:${s.sentiment[k] / t * 100}%;background:${c}">${s.sentiment[k] ? Math.round(s.sentiment[k] / t * 100) + "%" : ""}</div>`).join("");
+  const loud = (run?.posts || []).filter(p => p.sentiment === "negative").sort((a, b) => (b.likes || 0) - (a.likes || 0))[0];
+  $("loudest").innerHTML = loud ? `<div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--line)">
+    <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Most-liked complaint</div>
+    <div style="font-size:13px">${esc(loud.text)}</div>
+    <div class="sub mono" style="font-size:11px;color:var(--dim);margin-top:4px">${esc(loud.handle)} · ♥ ${(loud.likes ?? 0).toLocaleString()} · <a class="ref" href="#post-${loud.n}" onclick="return jump(${loud.n})">[${loud.n}]</a></div></div>` : "";
+  const max = Math.max(1, ...Object.values(s.themes));
+  $("themes").innerHTML = Object.entries(s.themes).filter(([, v]) => v).sort((a, b) => b[1] - a[1]).map(([k, v]) => {
+    const neg = run?.posts?.filter(p => p.theme === k && p.sentiment === "negative").length || 0;
+    return `<div class="bar"><span>${THEME_LABEL[k]}</span><div class="track"><div style="width:${neg / max * 100}%;background:var(--neg)"></div><div style="width:${(v - neg) / max * 100}%;background:#6b7280"></div></div><span class="c">${v}</span></div>`;
+  }).join("");
+}
+
+function renderPosts() {
+  const posts = run.posts;
+  const counts = { all: posts.length, negative: 0, neutral: 0, positive: 0, high: 0 };
+  posts.forEach(p => { counts[p.sentiment]++; if (p.urgency === "high") counts.high++; });
+  $("filters").innerHTML = ["all","negative","neutral","positive","high"].map(f =>
+    `<button class="${filter === f ? "on" : ""}" data-f="${f}">${f === "high" ? "urgent" : f} ${counts[f]}</button>`).join("");
+  $("filters").querySelectorAll("button").forEach(b => b.onclick = () => { filter = b.dataset.f; renderPosts(); });
+  const shown = posts.filter(p => filter === "all" || p.sentiment === filter || (filter === "high" && p.urgency === "high"));
+  $("posts").innerHTML = shown.map(p => `
+    <div class="post" id="post-${p.n}">
+      <div class="num">${p.n}</div>
+      <div>
+        <div class="meta"><b>${esc(p.handle)}</b><span>${esc(p.date)}</span>${p.likes != null ? `<span>♥ ${p.likes.toLocaleString()}</span>` : ""}
+          <span class="badge b-${p.sentiment}">${p.sentiment}</span><span class="badge b-theme">${THEME_LABEL[p.theme] || p.theme}</span>
+          ${p.urgency === "high" ? `<span class="badge b-high">urgent</span>` : ""}
+          ${p.verified === true ? `<span class="badge b-ok" title="URL returned by x_search">✓ source</span>` : p.verified === false ? `<span class="badge b-unv" title="URL not in Grok's returned sources">unverified</span>` : ""}
+          <a class="ref" href="${esc(p.url)}" target="_blank" rel="noopener">open on X ↗</a></div>
+        <div class="txt">${esc(p.text)}</div>
+        <div class="sum">${esc(p.summary)}</div>
+      </div>
+    </div>`).join("") || `<div style="color:var(--muted)">No posts in this filter.</div>`;
+}
+
+function md(s) {
+  const ref = n => `<a class="ref" href="#post-${n}" onclick="return jump(${n})">[${n}]</a>`;
+  const inline = t => esc(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\[(\d+(?:\s*,\s*\d+)*)\]/g, (_, g) => g.split(/\s*,\s*/).map(ref).join(""));
+  let html = "", inList = false;
+  for (const line of s.split("\n")) {
+    const li = line.match(/^\s*[-*•]\s+(.*)/);
+    if (li) { if (!inList) { html += "<ul>"; inList = true; } html += `<li>${inline(li[1])}</li>`; continue; }
+    if (inList) { html += "</ul>"; inList = false; }
+    if (line.trim()) html += `<p>${inline(line.replace(/^#+\s*/, ""))}</p>`;
+  }
+  return html + (inList ? "</ul>" : "");
+}
+function jump(n) {
+  if (filter !== "all") { filter = "all"; renderPosts(); }
+  const el = $("post-" + n); if (!el) return false;
+  el.scrollIntoView({ behavior:"smooth", block:"center" }); el.classList.add("flash"); setTimeout(() => el.classList.remove("flash"), 1400);
+  return false;
+}
+
+$("askRow").onsubmit = e => { e.preventDefault(); const q = $("q").value.trim(); if (q) ask(q); };
+async function ask(q) {
+  if (!run?.id || busy) return;
+  busy = true; $("q").value = "";
+  const box = document.createElement("div"); box.className = "qa";
+  box.innerHTML = `<div class="q">› ${esc(q)}</div><div class="a cursor" style="color:var(--muted)">Grok is running code and searching</div>`;
+  $("answers").prepend(box);
+  log("model", "▶ follow-up", q);
+  await sse("/api/ask", { runId: run.id, question: q }, {
+    trace: onTrace,
+    answer: a => { const el = box.querySelector(".a"); el.classList.remove("cursor"); el.style.color = ""; el.innerHTML = md(a.answer); },
+    error: e => { box.querySelector(".a").textContent = "⚠ " + e.message; log("err", "error", e.message); },
+  });
+  busy = false;
+}
+</script>
+</body>
+</html>
